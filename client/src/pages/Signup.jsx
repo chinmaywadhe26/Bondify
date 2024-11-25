@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
+import { useUpload } from "../hooks/useUpload";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
   const [image, setImage] = useState(null);
+  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -14,11 +17,32 @@ const Signup = () => {
       if (!name || !password || !email) {
         return toast.error("All fields are required");
       }
-      if (name.trim === "" || email.trim === "" || password.trim === "") {
+      if (name.trim() === "" || email.trim() === "" || password.trim() === "") {
         return toast.error("all fields are required");
       }
       if (!email.includes("@") && !email.includes(".")) {
         return toast.error("invalid email");
+      }
+      const { public_id, url } = await useUpload({ image });
+      if (!public_id || !url) {
+        toast.error("Error uploading image");
+        return;
+      } else {
+        const res = await axios.post("http://localhost:5000/api/signup", {
+          name,
+          email,
+          password,
+          profile: url,
+          publicId: public_id,
+        });
+        const data = await res.data;
+        if (data.success) {
+          toast.success(data.message);
+          e.target.reset();
+          navigate("/login");
+        } else {
+          toast.error(data.message);
+        }
       }
     } catch (error) {
       console.log(error.message);
